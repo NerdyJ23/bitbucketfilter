@@ -5,8 +5,8 @@
 // @description  try to take over the world!
 // @author       Me!
 // @match        https://bitbucket.org/*
-// @downloadURL  https://github.com/NerdyJ23/bitbucketbranchfilter/blob/main/script.js
-// @updateURL    https://github.com/NerdyJ23/bitbucketbranchfilter/blob/main/script.js
+// @downloadURL  https://github.com/NerdyJ23/bitbucketfilter/blob/main/script.js
+// @updateURL    https://github.com/NerdyJ23/bitbucketfilter/blob/main/script.js
 // @icon         https://d301sr5gafysq2.cloudfront.net/frontbucket/assets/present/build-favicon-default.df3a1f57.ico
 // @grant        none
 // @run-at       document-end
