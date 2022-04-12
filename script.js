@@ -123,22 +123,40 @@ function getUsersInWorkspace(page) //no easy internal API for this one, gotta sc
 function addEvents()
 {
     $(`#filter`).on("click",function() {
-        $("#filteredBranches").html("");
-        branchPage(1);
-        branchPage(2);
+        $("#filteredBranches").html("<span id='loading'>LOADING....</span>");
+
+        loadBranches();
+    });
+}
+function loadBranches()
+{
+    /*return new Promise(resolve => {
+        console.log("loading....");
+        //let done = await branchPage(1);
+        await branchPage(2);
         branchPage(3);
         branchPage(4);
         branchPage(5);
+        //console.log("loaded?");
+        console.log("done");
+        resolve("DONE");
+    });*/
 
-    });
+    (async() => {
+        console.log("starting");
+        await(branchPage(1));
+        await(branchPage(2));
+        console.log("done??");
+    })();
 }
-function branchPage(pageNo) //implicitly gets branch from the current branch url
+async function branchPage(pageNo) //implicitly gets branch from the current branch url
 {
     let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if(this.readyState == 4 && this.status == 200) {
             console.log(this.responseText);
             getBranchByUser(this.responseText);
+            //return true;
         }
     }
     let url = `https://bitbucket.org/!api/internal/repositories/${getCurrentRepo()}/branch-list/`
@@ -175,7 +193,7 @@ function addUI()
     </div>
     `);
     $(main).append(`<select id="userList"></select>`);
-    $(main).append(`<input type="button" id="filter" value="Filter" style="padding:5px"/>`);
+    $(main).append(`<input type="button" id="filter" value="Filter" style="padding:2px; margin-left:5px;"/>`);
     $(main).parent().parent().append(`<div id="filteredBranches"></div>`);
 
 }
