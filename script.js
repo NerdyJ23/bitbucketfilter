@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BitBucket search my branches
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.5
 // @description  To add a filter drop down to the bitbucket branches page to filter by users
 // @author       Jessica Moolenschot
 // @match        https://bitbucket.org/*
@@ -11,8 +11,7 @@
 // @grant        none
 // @run-at       document-end
 // @require      http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js
-// @require      file://C:\\Users\\jessica.moolenschot\\Git\\bitbucketfilter\\script.js
-
+// @license      MIT
 // ==/UserScript==
 
 let main = "#userBranchDiv";
