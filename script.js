@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BitBucket search my branches
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  To add a filter drop down to the bitbucket branches page to filter by users
 // @author       Jessica Moolenschot
 // @match        https://bitbucket.org/*
@@ -11,8 +11,11 @@
 // @grant        none
 // @run-at       document-end
 // @require      http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js
+// @require      file://C:\\Users\\jessica.moolenschot\\Git\\bitbucketfilter\\script.js
 
 // ==/UserScript==
+
+let main = "#userBranchDiv";
 (function() {
     'use strict';
     let lastUrl = location.href;
@@ -42,53 +45,73 @@
 
 function init()
 {
-    addUI();
-    addEvents();
-    getUsersInWorkspace(0);
+    //console.log($(main).html());
+    if($(main).html() === null)
+    {
+        addUI();
+        addEvents();
+        getUsersInWorkspace(0);
+    }
 }
 
-function addFilteredBranches(branchArr)
+function addFilteredBranch(branch)
 {
+    $("#filteredBranches").append(`
+        <span>
+            <a href="${branch.links.html.href}">${branch.name}</a>
+        </span>
+        </br>
+    `);
 }
 
-function getBranchByUser(user)
+function getBranchByUser(data)
 {
+    let jsondata = JSON.parse(data);
+    let user = $(`#userList`).find(":selected").html();
+    //console.log(jsondata);
+    for(let i = 0; i < jsondata.values.length; i++)
+    {
+        if(jsondata.values[i].target.author.user.display_name == user) 
+        {
+            console.log(jsondata.values[i]);
+            addFilteredBranch(jsondata.values[i]);
+        }
+    }
+    //get selected user from selection menu
+    //parse json data
+    //add to filtered branches
 }
 
 function getUsersInWorkspace(page) //no easy internal API for this one, gotta scour the HTML
 {
     let url = `https://bitbucket.org/${getCurrentWorkspace()}/workspace/members/?page=${page+1}`
-
     let userArray = [];
     let memberPage = null;
     //let url = `https://api.bitbucket.org/2.0/workspaces/${getCurrentWorkspace()}/members`;
     let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if(this.readyState == 4 && this.status == 200) {
-
+            let dropdownHTML = $("#userList");
             memberPage= $(this.responseText);
-            //console.log(memberPage);
 
-            let memberCount = $(memberPage).find('#filter-pjax').find('p').text()//console.log(`found member count: ${$(memberPage).find('#filter-pjax').find('p').text()}`);
+            let memberCount = $(memberPage).find('#filter-pjax').find('p').text();
             memberCount = (memberCount.slice(memberCount.indexOf(':')+1, memberCount.length)).trim();
             console.log(`There are ${memberCount} users in this group`);
 
             let memberList = $(memberPage).find(".user");
             let i = memberCount / 30;
-            console.log(`runs ${i} times`);
             let r = memberCount - (30 * page);
-            console.log(`count: ${memberCount} | page: ${page} | remainder: ${r}`);
-            console.log(r);
             if(r > 30)
             {
                 r = 30;
                 getUsersInWorkspace(page+1);
             }
-            for(let user = 0; user < r; user++)
+            let users = $(memberList).find('.name--overflow-wrap');
+
+            for(let user = 0; user < users.length; user++)
             {
-                let currUser = $(memberList).find('span').text();
-                console.log(currUser);
-                console.log(`user ${user+1 + (30 * page)} of ${memberCount}`);
+                let u = $(users[user]).text().trim();
+                dropdownHTML.append(`<option value=''>${u}</option>`);
             }
 
         }
@@ -100,7 +123,13 @@ function getUsersInWorkspace(page) //no easy internal API for this one, gotta sc
 function addEvents()
 {
     $(`#filter`).on("click",function() {
-        branchPage(0);
+        $("#filteredBranches").html("");
+        branchPage(1);
+        branchPage(2);
+        branchPage(3);
+        branchPage(4);
+        branchPage(5);
+
     });
 }
 function branchPage(pageNo) //implicitly gets branch from the current branch url
@@ -109,6 +138,7 @@ function branchPage(pageNo) //implicitly gets branch from the current branch url
     xhttp.onreadystatechange = function() {
         if(this.readyState == 4 && this.status == 200) {
             console.log(this.responseText);
+            getBranchByUser(this.responseText);
         }
     }
     let url = `https://bitbucket.org/!api/internal/repositories/${getCurrentRepo()}/branch-list/`
@@ -140,11 +170,14 @@ function encodeURL(url)
 }
 function addUI()
 {
-    $('div[role="search"]').parent().parent().append(`
-    <div id="userBranches" style="margin-top: 15px">
-      <input type="button" id="filter" value="Filter" />
+    $('div[role="search"]').parent().append(`
+    <div id="userBranchDiv">
     </div>
     `);
+    $(main).append(`<select id="userList"></select>`);
+    $(main).append(`<input type="button" id="filter" value="Filter" style="padding:5px"/>`);
+    $(main).parent().parent().append(`<div id="filteredBranches"></div>`);
+
 }
 function getCurrentRepo()
 {
@@ -153,15 +186,15 @@ function getCurrentRepo()
     console.log(url);
 
     url = url.slice(url.indexOf('/')+1, url.length-1); //WORKSPACE/REPO/branches
-    console.log(url);
-    url = url.replace(url.slice(url.lastIndexOf('/'),url.length),''); //WORKSPACE/REPO
-    console.log(url);
+    console.log(`repo and branches: ${url}`);
+    url = url.replace(url.slice(url.lastIndexOf('/branches'),url.length),''); //WORKSPACE/REPO
+    console.log(`workspace and repo: ${url}`);
     return url;
 }
 function getCurrentWorkspace()
 {
     let url = getCurrentRepo(); //WORKSPACE/REPO
     url = url.slice(0, url.indexOf('/')); //WORKSPACE
-    console.log(url);
+    console.log(`workspace: ${url}`);
     return url;
 }
