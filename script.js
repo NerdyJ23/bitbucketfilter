@@ -2,8 +2,8 @@
 // @name         BitBucket search my branches
 // @namespace    http://tampermonkey.net/
 // @version      0.3
-// @description  try to take over the world!
-// @author       Me!
+// @description  To add a filter drop down to the bitbucket branches page to filter by users
+// @author       Jessica Moolenschot
 // @match        https://bitbucket.org/*
 // @downloadURL  https://github.com/NerdyJ23/bitbucketfilter/blob/main/script.js
 // @updateURL    https://github.com/NerdyJ23/bitbucketfilter/blob/main/script.js
