@@ -21,7 +21,6 @@ let main = "#userBranchDiv";
     let lastUrl = location.href;
     if(lastUrl.indexOf('/branches/') != -1)
     {
-        console.log("on branch");
         setTimeout(function() {
             init();
         },1000);// need basic DOM to load, since bitbucket uses OnePAge application it needs time to load even with run at doc end
@@ -45,7 +44,6 @@ let main = "#userBranchDiv";
 
 function init()
 {
-    //console.log($(main).html());
     if($(main).html() === null)
     {
         addUI();
@@ -68,15 +66,17 @@ function getBranchByUser(data)
 {
     let jsondata = JSON.parse(data);
     let user = $(`#userList`).find(":selected").html();
-    //console.log(jsondata);
-    for(let i = 0; i < jsondata.values.length; i++)
-    {
-        if(jsondata.values[i].target.author.user.display_name == user) 
+    let promise = new Promise((resolve,reject) => {
+        for(let i = 0; i < jsondata.values.length; i++)
         {
-            console.log(jsondata.values[i]);
-            addFilteredBranch(jsondata.values[i]);
+            if(jsondata.values[i].target.author.user.display_name == user) 
+            {
+                addFilteredBranch(jsondata.values[i]);
+            }
         }
-    }
+        resolve("yes");
+    })
+
     //get selected user from selection menu
     //parse json data
     //add to filtered branches
@@ -96,7 +96,6 @@ function getUsersInWorkspace(page) //no easy internal API for this one, gotta sc
 
             let memberCount = $(memberPage).find('#filter-pjax').find('p').text();
             memberCount = (memberCount.slice(memberCount.indexOf(':')+1, memberCount.length)).trim();
-            console.log(`There are ${memberCount} users in this group`);
 
             let memberList = $(memberPage).find(".user");
             let i = memberCount / 30;
@@ -123,60 +122,62 @@ function getUsersInWorkspace(page) //no easy internal API for this one, gotta sc
 function addEvents()
 {
     $(`#filter`).on("click",function() {
-        $("#filteredBranches").html("<span id='loading'>LOADING....</span>");
+        $("#filteredBranches").html("<span id='loading'>LOADING....</span><br/>");
 
         loadBranches();
     });
 }
-function loadBranches()
+async function loadBranches()
 {
-    /*return new Promise(resolve => {
-        console.log("loading....");
-        //let done = await branchPage(1);
-        await branchPage(2);
-        branchPage(3);
-        branchPage(4);
-        branchPage(5);
-        //console.log("loaded?");
-        console.log("done");
-        resolve("DONE");
-    });*/
+    console.log("starting");
+    Promise.all([branchPage(1),branchPage(2),branchPage(3),branchPage(4),branchPage(5)])
+    .then(result => {
+        $("#loading").text("DONE!");
+    })
+    .catch(error => {
+        console.error("uh oh will you even see this through the slew of errors that bitbucket throws anyway?");
+    });
 
-    (async() => {
-        console.log("starting");
-        await(branchPage(1));
-        await(branchPage(2));
-        console.log("done??");
-    })();
 }
+
 async function branchPage(pageNo) //implicitly gets branch from the current branch url
 {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if(this.readyState == 4 && this.status == 200) {
-            console.log(this.responseText);
-            getBranchByUser(this.responseText);
-            //return true;
+ 
+    const finalPromise = await new Promise((resolve, reject) => {
+        let xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if(this.readyState == 4 && this.status == 200) {
+                resolve(this.responseText);
+            }
         }
+        let url = `https://bitbucket.org/!api/internal/repositories/${getCurrentRepo()}/branch-list/`
+        +`?q=name != \"master\" AND (ahead > 0 OR ahead = null)`
+        +`&page=${pageNo}`
+        +`&pagelen=25`
+        +`&fields=`
+        +`-values.target.author.user.account_id,`
+        +`+values.pullrequest.state,`
+        +`+values.pullrequest.created_on,`
+        +`+values.pullrequests.state,`
+        +`+values.pullrequests.created_on,`
+        +`+values.pullrequests.closed_on,`
+        +`-values.statuses,`
+        +`+values.default_merge_strategy,`
+        +`+values.merge_strategies`;
+    
+        url = encodeURL(url);
+        xhttp.open("GET", url);
+        xhttp.send();
+        
+    });
+    if(finalPromise) {
+        console.log(finalPromise);
+        const promise2 = await new Promise((resolve,reject) => {
+            getBranchByUser(finalPromise);
+            resolve();
+        });
+        return promise2;
     }
-    let url = `https://bitbucket.org/!api/internal/repositories/${getCurrentRepo()}/branch-list/`
-    +`?q=name != \"master\" AND (ahead > 0 OR ahead = null)`
-    +`&page=${pageNo}`
-    +`&pagelen=25`
-    +`&fields=`
-    +`-values.target.author.user.account_id,`
-    +`+values.pullrequest.state,`
-    +`+values.pullrequest.created_on,`
-    +`+values.pullrequests.state,`
-    +`+values.pullrequests.created_on,`
-    +`+values.pullrequests.closed_on,`
-    +`-values.statuses,`
-    +`+values.default_merge_strategy,`
-    +`+values.merge_strategies`;
-
-    url = encodeURL(url);
-    xhttp.open("GET", url);
-    xhttp.send();
 }
 function encodeURL(url)
 {
@@ -201,18 +202,14 @@ function getCurrentRepo()
 {
     let url = window.location.href;
     url = url.replace('https://',''); //bitbucket.org/WORKSPACE/REPO/branches
-    console.log(url);
 
     url = url.slice(url.indexOf('/')+1, url.length-1); //WORKSPACE/REPO/branches
-    console.log(`repo and branches: ${url}`);
     url = url.replace(url.slice(url.lastIndexOf('/branches'),url.length),''); //WORKSPACE/REPO
-    console.log(`workspace and repo: ${url}`);
     return url;
 }
 function getCurrentWorkspace()
 {
     let url = getCurrentRepo(); //WORKSPACE/REPO
     url = url.slice(0, url.indexOf('/')); //WORKSPACE
-    console.log(`workspace: ${url}`);
     return url;
 }
